@@ -18,12 +18,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -58,7 +60,6 @@ fun PartnersScreen(onBack: () -> Unit = {}, onAction: (String) -> Unit = {}) {
 		horizontalAlignment = Alignment.CenterHorizontally,
 		verticalArrangement = Arrangement.Top
 	) {
-		// Header (logo text) — centralizado no topo
 		Text(
 			text = buildAnnotatedString {
 				append("CLEAN")
@@ -91,39 +92,43 @@ fun PartnersScreen(onBack: () -> Unit = {}, onAction: (String) -> Unit = {}) {
 				.padding(20.dp, 20.dp, 20.dp, 8.dp)
 		)
 
-		// Lista de parceiros em formato de cards
 		Column(
 			modifier = Modifier
 				.fillMaxWidth()
 				.padding(horizontal = 16.dp, vertical = 8.dp)
 		) {
-			data class Partner(val id: String, val name: String, val benefit: String)
+			data class Partner(val id: String, val name: String, val benefit: String, val logoRes: Int? = null)
 
 			val partners = listOf(
 				Partner(
 					"amazon",
 					"Amazon",
-					"Ganhe pontos ao reciclar: troque por cupons de até 20% em produtos selecionados da Amazon."
+					"Troque pontos por cupons de até 20% na Amazon.",
+					R.drawable.amazon_logo
 				),
 				Partner(
 					"mercado_livre",
 					"Mercado Livre",
-					"Acumule pontos por reciclagem e desbloqueie frete grátis e descontos exclusivos em compras sustentáveis."
+					"Pontos que geram descontos e frete grátis.",
+					R.drawable.mercadolivre_logo
 				),
 				Partner(
 					"ifood",
 					"Ifood",
-					"Pontos por reciclar = desconto em pedidos verdes; economize até 10% nos restaurantes parceiros."
+					"Descontos de até 10% em pedidos parceiros.",
+					R.drawable.ifood_logo
 				),
 				Partner(
 					"fiap",
 					"FIAP",
-					"Benefícios educativos: pontos trocáveis por bolsas e descontos em cursos e workshops."
+					"Pontos trocáveis por cursos e descontos educativos.",
+					R.drawable.fiap_logo
 				),
 				Partner(
 					"uber",
 					"Uber",
-					"Conquiste créditos de viagem ao participar de campanhas de reciclagem — contribua e viaje mais barato."
+					"Ganhe créditos de viagem em campanhas de reciclagem.",
+					R.drawable.uber_logo
 				)
 			)
 
@@ -143,10 +148,47 @@ fun PartnersScreen(onBack: () -> Unit = {}, onAction: (String) -> Unit = {}) {
 						verticalAlignment = Alignment.CenterVertically,
 						horizontalArrangement = Arrangement.SpaceBetween
 					) {
+						if (partner.logoRes != null) {
+							Box(
+								modifier = Modifier
+									.size(64.dp)
+									.clip(RoundedCornerShape(12.dp))
+									.background(color = WHITE.copy(alpha = 0.06f)),
+								contentAlignment = Alignment.Center
+							) {
+								Image(
+									painter = painterResource(id = partner.logoRes),
+									contentDescription = partner.name,
+									modifier = Modifier
+										.padding(8.dp)
+										.fillMaxSize(),
+									contentScale = ContentScale.Fit
+								)
+							}
+						} else {
+							Box(
+								modifier = Modifier
+									.size(64.dp)
+									.clip(RoundedCornerShape(12.dp))
+									.background(color = WHITE.copy(alpha = 0.06f)),
+								contentAlignment = Alignment.Center
+							) {
+								Text(text = partner.name.take(1), color = WHITE, fontWeight = FontWeight.Bold)
+							}
+						}
+
+						Spacer(modifier = Modifier.width(12.dp))
+
 						Column(modifier = Modifier.weight(1f)) {
 							Text(text = partner.name, color = WHITE, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
 							Spacer(modifier = Modifier.height(6.dp))
-							Text(text = partner.benefit, color = WHITE, fontSize = 14.sp)
+							Text(
+								text = partner.benefit,
+								color = WHITE,
+								fontSize = 14.sp,
+								maxLines = 2,
+								overflow = TextOverflow.Ellipsis
+							)
 						}
 
 						Spacer(modifier = Modifier.width(12.dp))
@@ -156,59 +198,42 @@ fun PartnersScreen(onBack: () -> Unit = {}, onAction: (String) -> Unit = {}) {
 							colors = ButtonDefaults.buttonColors(containerColor = BLUE),
 							modifier = Modifier.shadow(elevation = 8.dp, shape = RoundedCornerShape(8.dp), spotColor = BLUE)
 						) {
-							Text(text = "Obter", color = WHITE, fontWeight = FontWeight.Bold)
+							Text(text = "Resgatar", color = WHITE, fontWeight = FontWeight.Bold)
 						}
 					}
 				}
 			}
 		}
 
-		Row(modifier = Modifier
-			.fillMaxWidth()
-			.padding(20.dp)
+		Column(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(20.dp),
+			horizontalAlignment = Alignment.CenterHorizontally
 		) {
 			Button(
 				onClick = { onBack() },
-				colors = ButtonDefaults.buttonColors(
-					containerColor = Color.Transparent
-				),
-				border = BorderStroke(
-					width = 1.dp,
-					color = WHITE
-				)
+				modifier = Modifier
+					.fillMaxWidth()
+					.height(48.dp),
+				colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+				border = BorderStroke(width = 1.dp, color = WHITE)
 			) {
-				Text(
-					text = "Voltar",
-					fontSize = 18.sp,
-					fontWeight = FontWeight.Bold,
-					color = WHITE
-				)
+				Text(text = "Voltar", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = WHITE)
 			}
 
-			Row(
-				modifier = Modifier
-					.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceAround
-			) {
-				Button(
-					onClick = { onAction("geral") },
-					colors = ButtonDefaults.buttonColors(
-						containerColor = BLUE
-					),
-					modifier = Modifier.shadow(
-						elevation = 16.dp,
-						shape = CircleShape,
-						spotColor = BLUE
-					)
+			Spacer(modifier = Modifier.height(12.dp))
 
-				) {
-					Text(
-						text = "Seja parceiro",
-						fontSize = 18.sp,
-						fontWeight = FontWeight.Bold,
-						color = WHITE
-					)
-				}
+			Button(
+				onClick = { onAction("geral") },
+				modifier = Modifier
+					.fillMaxWidth()
+					.height(48.dp),
+				colors = ButtonDefaults.buttonColors(containerColor = BLUE),
+				shape = RoundedCornerShape(24.dp),
+				elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+			) {
+				Text(text = "Seja parceiro", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = WHITE)
 			}
 		}
 
