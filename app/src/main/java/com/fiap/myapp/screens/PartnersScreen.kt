@@ -158,6 +158,7 @@ fun PartnersScreen(onBack: () -> Unit = {}, onAction: (String) -> Unit = {}) {
 				textAlign = TextAlign.Center,
 				modifier = Modifier
 					.fillMaxWidth()
+					.statusBarsPadding()
 					.padding(top = 16.dp, bottom = 8.dp)
 			)
 
