@@ -236,7 +236,7 @@ fun CadastroScreen(
                     // Botão Cadastrar
                     Button(
                         onClick = { 
-                            authViewModel?.register(email.trim(), password)
+                            authViewModel?.signUp(email.trim(), password)
                         },
                         modifier = Modifier
                             .fillMaxWidth()

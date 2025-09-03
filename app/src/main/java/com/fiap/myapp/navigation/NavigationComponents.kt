@@ -9,54 +9,79 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fiap.myapp.ui.theme.BLUE
 import com.fiap.myapp.ui.theme.GREEN
 import com.fiap.myapp.ui.theme.WHITE
 
+// UI Constants
+private val LOADING_INDICATOR_SIZE = 48.dp
+private val CONTENT_SPACING = 16.dp
+
 /**
- * Componente para exibir estado de loading
+ * Loading screen component displayed during authentication state checks.
+ * Maintains visual consistency with the app's branding.
  */
 @Composable
 fun LoadingScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(GREEN, BLUE)
-                )
-            ),
+            .background(brush = Brush.linearGradient(colors = listOf(GREEN, BLUE))),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            CircularProgressIndicator(
-                color = WHITE,
-                modifier = Modifier.size(48.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "CLEANWORLD",
-                color = WHITE,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "Verificando autenticação...",
-                color = WHITE.copy(alpha = 0.8f),
-                fontSize = 16.sp,
-                textAlign = TextAlign.Center
-            )
-        }
+        LoadingContent()
     }
 }
 
+@Composable
+private fun LoadingContent() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        CircularProgressIndicator(
+            color = WHITE,
+            modifier = Modifier.size(LOADING_INDICATOR_SIZE)
+        )
+        
+        Spacer(modifier = Modifier.height(CONTENT_SPACING))
+        
+        BrandTitle()
+        
+        StatusMessage(
+            message = "Checking authentication...",
+            modifier = Modifier.padding(top = 8.dp)
+        )
+    }
+}
+
+@Composable
+private fun BrandTitle() {
+    Text(
+        text = "CLEANWORLD",
+        color = WHITE,
+        fontSize = 24.sp,
+        fontWeight = FontWeight.Bold
+    )
+}
+
+@Composable
+private fun StatusMessage(message: String, modifier: Modifier = Modifier) {
+    Text(
+        text = message,
+        color = WHITE.copy(alpha = 0.8f),
+        fontSize = 16.sp,
+        textAlign = TextAlign.Center,
+        modifier = modifier
+    )
+}
+
 /**
- * Componente para exibir erros de autenticação
+ * Error dialog component for displaying authentication errors.
+ * Provides clear error messaging and optional retry functionality.
  */
 @Composable
 fun ErrorDialog(
@@ -68,7 +93,7 @@ fun ErrorDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Erro de Autenticação",
+                text = "Authentication Error",
                 fontWeight = FontWeight.Bold
             )
         },
@@ -82,13 +107,31 @@ fun ErrorDialog(
         },
         dismissButton = onRetry?.let { retry ->
             {
-                TextButton(onClick = {
-                    retry()
-                    onDismiss()
-                }) {
-                    Text("Tentar Novamente")
+                TextButton(
+                    onClick = {
+                        retry()
+                        onDismiss()
+                    }
+                ) {
+                    Text("Try Again")
                 }
             }
         }
+    )
+}
+
+@Preview
+@Composable
+private fun LoadingScreenPreview() {
+    LoadingScreen()
+}
+
+@Preview
+@Composable
+private fun ErrorDialogPreview() {
+    ErrorDialog(
+        message = "Failed to authenticate user",
+        onDismiss = {},
+        onRetry = {}
     )
 }

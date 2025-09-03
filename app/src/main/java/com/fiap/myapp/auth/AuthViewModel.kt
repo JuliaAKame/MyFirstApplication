@@ -3,38 +3,42 @@ package com.fiap.myapp.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
-import com.google.firebase.auth.FirebaseAuthInvalidUserException
-import com.google.firebase.auth.FirebaseAuthUserCollisionException
-import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel responsável por gerenciar o estado de autenticação da aplicação
+ * ViewModel responsible for managing authentication state throughout the application.
+ * Provides reactive authentication state and handles all auth operations.
  */
-class AuthViewModel : ViewModel() {
-    private val authRepository = AuthRepository()
+class AuthViewModel(
+    private val authRepository: AuthRepository = FirebaseAuthRepository()
+) : ViewModel() {
     
     private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
     
     private val authStateListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
-        val user = firebaseAuth.currentUser
-        _authState.value = if (user != null) {
-            AuthState.Authenticated(user)
-        } else {
-            AuthState.Unauthenticated
-        }
+        handleFirebaseAuthStateChange(firebaseAuth.currentUser)
+    }
+    
+    companion object {
+        private const val EMPTY_CREDENTIALS_ERROR = "Email and password are required"
+        private const val SIGN_IN_ERROR_PREFIX = "Sign in failed: "
+        private const val SIGN_UP_ERROR_PREFIX = "Registration failed: "
     }
     
     init {
-        // Adiciona listener para mudanças no estado de autenticação
+        initializeAuthState()
+    }
+    
+    /**
+     * Initializes authentication state and sets up Firebase auth listener.
+     */
+    private fun initializeAuthState() {
         authRepository.addAuthStateListener(authStateListener)
         
-        // Verifica estado inicial
         val currentUser = authRepository.getCurrentUser()
         _authState.value = if (currentUser != null) {
             AuthState.Authenticated(currentUser)
@@ -44,58 +48,56 @@ class AuthViewModel : ViewModel() {
     }
     
     /**
-     * Faz login com email e senha
+     * Handles Firebase authentication state changes.
      */
-    fun login(email: String, password: String) {
-        if (email.isBlank() || password.isBlank()) {
-            _authState.value = AuthState.Error("Email e senha são obrigatórios")
-            return
+    private fun handleFirebaseAuthStateChange(user: com.google.firebase.auth.FirebaseUser?) {
+        _authState.value = if (user != null) {
+            AuthState.Authenticated(user)
+        } else {
+            AuthState.Unauthenticated
         }
+    }
+    
+    /**
+     * Signs in user with email and password.
+     * @param email User's email address
+     * @param password User's password
+     */
+    fun signIn(email: String, password: String) {
+        if (!validateCredentials(email, password)) return
         
-        _authState.value = AuthState.Loading
+        executeAuthOperation {
+            authRepository.signIn(email, password)
+        }
+    }
+    
+    /**
+     * Registers new user with email and password.
+     * @param email User's email address  
+     * @param password User's password
+     */
+    fun signUp(email: String, password: String) {
+        if (!validateCredentials(email, password)) return
         
+        executeAuthOperation {
+            authRepository.signUp(email, password)
+        }
+    }
+    
+    /**
+     * Signs out the current user.
+     */
+    fun signOut() {
         viewModelScope.launch {
-            authRepository.login(email, password)
-                .onSuccess { user ->
-                    _authState.value = AuthState.Authenticated(user)
-                }
+            authRepository.signOut()
                 .onFailure { exception ->
-                    _authState.value = AuthState.Error(getErrorMessage(exception))
+                    _authState.value = AuthState.Error("Sign out failed: ${exception.message}")
                 }
         }
     }
     
     /**
-     * Registra novo usuário
-     */
-    fun register(email: String, password: String) {
-        if (email.isBlank() || password.isBlank()) {
-            _authState.value = AuthState.Error("Email e senha são obrigatórios")
-            return
-        }
-        
-        _authState.value = AuthState.Loading
-        
-        viewModelScope.launch {
-            authRepository.register(email, password)
-                .onSuccess { user ->
-                    _authState.value = AuthState.Authenticated(user)
-                }
-                .onFailure { exception ->
-                    _authState.value = AuthState.Error(getErrorMessage(exception))
-                }
-        }
-    }
-    
-    /**
-     * Faz logout do usuário atual
-     */
-    fun logout() {
-        authRepository.logout()
-    }
-    
-    /**
-     * Limpa mensagens de erro
+     * Clears any error state and returns to unauthenticated state.
      */
     fun clearError() {
         if (_authState.value is AuthState.Error) {
@@ -104,20 +106,55 @@ class AuthViewModel : ViewModel() {
     }
     
     /**
-     * Converte exceções Firebase em mensagens amigáveis
+     * Validates that email and password are not blank.
+     * @param email Email to validate
+     * @param password Password to validate
+     * @return true if valid, false otherwise
      */
-    private fun getErrorMessage(exception: Throwable): String {
-        return when (exception) {
-            is FirebaseAuthInvalidUserException -> "Usuário não encontrado"
-            is FirebaseAuthInvalidCredentialsException -> "Email ou senha incorretos"
-            is FirebaseAuthUserCollisionException -> "Email já está em uso"
-            is FirebaseAuthWeakPasswordException -> "Senha muito fraca. Use pelo menos 6 caracteres"
-            else -> exception.message ?: "Erro desconhecido"
+    private fun validateCredentials(email: String, password: String): Boolean {
+        if (email.isBlank() || password.isBlank()) {
+            _authState.value = AuthState.Error(EMPTY_CREDENTIALS_ERROR)
+            return false
+        }
+        return true
+    }
+    
+    /**
+     * Executes authentication operation with proper state management.
+     * @param operation Suspend function that returns authentication result
+     */
+    private fun executeAuthOperation(
+        operation: suspend () -> Result<com.google.firebase.auth.FirebaseUser>
+    ) {
+        _authState.value = AuthState.Loading
+        
+        viewModelScope.launch {
+            operation()
+                .onSuccess { user ->
+                    _authState.value = AuthState.Authenticated(user)
+                }
+                .onFailure { exception ->
+                    val errorMessage = exception.message ?: "Unknown error occurred"
+                    _authState.value = AuthState.Error(errorMessage)
+                }
         }
     }
     
+    /**
+     * Cleanup when ViewModel is destroyed.
+     */
     override fun onCleared() {
         super.onCleared()
         authRepository.removeAuthStateListener(authStateListener)
     }
+    
+    // Legacy method names for backward compatibility
+    @Deprecated("Use signIn instead", ReplaceWith("signIn(email, password)"))
+    fun login(email: String, password: String) = signIn(email, password)
+    
+    @Deprecated("Use signUp instead", ReplaceWith("signUp(email, password)"))
+    fun register(email: String, password: String) = signUp(email, password)
+    
+    @Deprecated("Use signOut instead", ReplaceWith("signOut()"))
+    fun logout() = signOut()
 }

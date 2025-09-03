@@ -205,7 +205,7 @@ fun Login(
                     // Botão Login
                     Button(
                         onClick = { 
-                            authViewModel?.login(email.trim(), password)
+                            authViewModel?.signIn(email.trim(), password)
                         },
                         modifier = Modifier
                             .fillMaxWidth()
