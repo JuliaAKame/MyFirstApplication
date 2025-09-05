@@ -30,10 +30,6 @@ import com.fiap.myapp.ui.theme.BLUE
 import com.fiap.myapp.ui.theme.GREEN
 import com.fiap.myapp.ui.theme.WHITE
 
-/**
- * Login screen with full AuthViewModel integration.
- * Supports authentication states, loading, and error handling.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Login(
@@ -45,11 +41,9 @@ fun Login(
     var erroLogin by remember { mutableStateOf("") }
     val minhaFonte = FontFamily(Font(R.font.righteous_regular))
     
-    // AuthState management - handles authentication flow
     val authState by (authViewModel?.authState?.collectAsState() ?: remember { mutableStateOf(AuthState.Unauthenticated) })
     val isLoading = authState is AuthState.Loading
     
-    // Handle auth errors automatically
     LaunchedEffect(authState) {
         val currentState = authState
         when (currentState) {
@@ -57,17 +51,14 @@ fun Login(
                 erroLogin = currentState.message
             }
             is AuthState.Authenticated -> {
-                // Navigation handled by NavGraph
                 erroLogin = ""
             }
             is AuthState.Unauthenticated -> {
-                // Clear errors when returning to unauthenticated state
                 if (erroLogin.isNotEmpty()) {
                     erroLogin = ""
                 }
             }
             is AuthState.Loading -> {
-                // Keep current error state during loading
             }
         }
     }
@@ -107,12 +98,10 @@ fun Login(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // Email Field with improved colors
         OutlinedTextField(
             value = email,
             onValueChange = { 
                 email = it
-                // Clear local error when user starts typing
                 if (erroLogin.isNotEmpty() && authViewModel == null) {
                     erroLogin = ""
                 }
@@ -133,13 +122,11 @@ fun Login(
             enabled = !isLoading
         )
 
-        // Password Field with improved colors
         OutlinedTextField(
             shape = RoundedCornerShape(9.dp),
             value = senha,
             onValueChange = { 
                 senha = it
-                // Clear local error when user starts typing
                 if (erroLogin.isNotEmpty() && authViewModel == null) {
                     erroLogin = ""
                 }
@@ -161,7 +148,6 @@ fun Login(
             enabled = !isLoading
         )
 
-        // Error Message Display
         if (erroLogin.isNotEmpty()) {
             Text(
                 text = erroLogin,
@@ -174,10 +160,8 @@ fun Login(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Login Button with AuthViewModel integration
         Button(
             onClick = {
-                // Input validation
                 erroLogin = when {
                     email.isBlank() -> "Preencha o e-mail"
                     senha.isBlank() -> "Preencha a senha"
@@ -185,7 +169,6 @@ fun Login(
                     else -> ""
                 }
                 
-                // If validation passes and AuthViewModel is available, attempt authentication
                 if (erroLogin.isEmpty() && authViewModel != null) {
                     authViewModel.signIn(email.trim(), senha)
                 }
@@ -226,7 +209,6 @@ fun Login(
             }
         }
 
-        // Register Button
         Button(
             onClick = onNavigateToCadastro,
             modifier = Modifier
@@ -245,7 +227,6 @@ fun Login(
             )
         }
         
-        // Clear error button when there's an auth error (allows retry)
         if (authState is AuthState.Error && authViewModel != null) {
             Spacer(modifier = Modifier.height(8.dp))
             TextButton(
