@@ -7,13 +7,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.Card
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -133,8 +129,9 @@ private fun PartnerItem(partner: Partner, onAction: (String) -> Unit, onResgatar
 }
 
 @Composable
-fun PartnersScreen(onBack: () -> Unit = {}, onAction: (String) -> Unit = {}) {
+fun PartnersScreen(onBack: () -> Unit = {}, onAction: (String) -> Unit = {}, onLogout: () -> Unit = {}) {
 	var selectedPartner by remember { mutableStateOf<Partner?>(null) }
+	var showLogoutDialog by remember { mutableStateOf(false) }
 
 	val clipboardManager = LocalClipboardManager.current
 
@@ -147,20 +144,42 @@ fun PartnersScreen(onBack: () -> Unit = {}, onAction: (String) -> Unit = {}) {
 		contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
 	) {
 		item {
-			Text(
-				text = buildAnnotatedString {
-					append("CLEAN")
-					withStyle(style = SpanStyle(color = BLUE, fontFamily = Righteous)) { append("WORLD\n") }
-				},
-				color = WHITE,
-				fontSize = 40.sp,
-				fontWeight = FontWeight.Bold,
-				textAlign = TextAlign.Center,
+			// Header com botão de logout
+			Row(
 				modifier = Modifier
 					.fillMaxWidth()
 					.statusBarsPadding()
-					.padding(top = 16.dp, bottom = 8.dp)
-			)
+					.padding(horizontal = 4.dp, vertical = 8.dp),
+				horizontalArrangement = Arrangement.SpaceBetween,
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				Spacer(modifier = Modifier.size(40.dp)) // Espaço para equilibrar o layout
+				
+				Text(
+					text = buildAnnotatedString {
+						append("CLEAN")
+						withStyle(style = SpanStyle(color = BLUE, fontFamily = Righteous)) { 
+							append("WORLD") 
+						}
+					},
+					color = WHITE,
+					fontSize = 32.sp,
+					fontWeight = FontWeight.Bold,
+					textAlign = TextAlign.Center
+				)
+				
+				IconButton(
+					onClick = { showLogoutDialog = true },
+					modifier = Modifier.size(40.dp)
+				) {
+					Icon(
+						imageVector = androidx.compose.material.icons.Icons.Default.ExitToApp,
+						contentDescription = "Sair",
+						tint = WHITE,
+						modifier = Modifier.size(24.dp)
+					)
+				}
+			}
 
 			Text(
 				text = "Confira nossos parceiros e seus benefícios",
@@ -170,7 +189,7 @@ fun PartnersScreen(onBack: () -> Unit = {}, onAction: (String) -> Unit = {}) {
 				textAlign = TextAlign.Center,
 				modifier = Modifier
 					.fillMaxWidth()
-					.padding(bottom = 8.dp)
+					.padding(bottom = 16.dp)
 			)
 		}
 
@@ -179,19 +198,10 @@ fun PartnersScreen(onBack: () -> Unit = {}, onAction: (String) -> Unit = {}) {
 		}
 
 		item {
-			// Footer with full-width buttons
-			Column(modifier = Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-				Button(
-					onClick = onBack,
-					modifier = Modifier
-						.fillMaxWidth()
-						.height(BUTTON_HEIGHT),
-					colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-					border = BorderStroke(width = 1.dp, color = WHITE)
-				) { Text(text = "Voltar", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = WHITE) }
+			// Footer - removido o botão "Voltar" pois agora temos logout no header
+			Spacer(modifier = Modifier.height(20.dp))
 
-			}
-
+			// Dialog de cupom
 			selectedPartner?.let { partner ->
 				val coupon = "${partner.name.replace(" ", "").uppercase()}10CLEANW"
 				val offerText = PARTNER_OFFERS[partner.id] ?: partner.benefit
@@ -207,6 +217,37 @@ fun PartnersScreen(onBack: () -> Unit = {}, onAction: (String) -> Unit = {}) {
 					},
 					dismissButton = {
 						TextButton(onClick = { selectedPartner = null }) { Text("Fechar") }
+					}
+				)
+			}
+			
+			// Dialog de logout
+			if (showLogoutDialog) {
+				AlertDialog(
+					onDismissRequest = { showLogoutDialog = false },
+					title = { 
+						Text(
+							text = "Sair da conta",
+							fontWeight = FontWeight.Bold
+						) 
+					},
+					text = { 
+						Text("Tem certeza de que deseja sair da sua conta?") 
+					},
+					confirmButton = {
+						TextButton(
+							onClick = {
+								showLogoutDialog = false
+								onLogout()
+							}
+						) {
+							Text("Sair", color = MaterialTheme.colorScheme.error)
+						}
+					},
+					dismissButton = {
+						TextButton(onClick = { showLogoutDialog = false }) {
+							Text("Cancelar")
+						}
 					}
 				)
 			}

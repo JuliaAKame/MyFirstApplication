@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "918543500500",
+    "project_id": "cleanword-61d27",
+    "storage_bucket": "cleanword-61d27.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:918543500500:android:8e3d346b8c580db6dea741",
+        "android_client_info": {
+          "package_name": "com.fiap.myapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2RB7112nJ15eLY_SlIZVrOfyW-gYRXnY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
