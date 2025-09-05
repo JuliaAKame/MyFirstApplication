@@ -1,296 +1,169 @@
 package com.fiap.myapp.screens
 
+import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.modifier.modifierLocalConsumer
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.fiap.myapp.auth.AuthState
-import com.fiap.myapp.auth.AuthViewModel
-import com.fiap.myapp.screens.MinhaFonte
+import androidx.navigation.NavHostController
+import com.fiap.myapp.R
 import com.fiap.myapp.ui.theme.BLUE
 import com.fiap.myapp.ui.theme.GREEN
 import com.fiap.myapp.ui.theme.WHITE
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CadastroScreen(
-    authViewModel: AuthViewModel? = null,
-    onNavigateToLogin: () -> Unit = {},
-    onBack: () -> Unit = {}
-) {
-    var name by remember { mutableStateOf("") }
+fun CadastroScreen(navController: NavHostController) {
+    val context = LocalContext.current
+    val minhaFonte = FontFamily(Font(R.font.righteous_regular))
+
+    var nome by remember { mutableStateOf("") }
+    var dataNascimento by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-    
-    val authState by (authViewModel?.authState?.collectAsState() ?: remember { mutableStateOf(AuthState.Unauthenticated) })
-    val isLoading = authState is AuthState.Loading
-    
-    // Validações
-    val isEmailValid = email.contains("@") && email.contains(".")
-    val isPasswordValid = password.length >= 6
-    val doPasswordsMatch = password == confirmPassword && confirmPassword.isNotEmpty()
-    val isFormValid = name.isNotBlank() && isEmailValid && isPasswordValid && doPasswordsMatch
-    
+    var telefone by remember { mutableStateOf("") }
+    var senha by remember { mutableStateOf("") }
+    var confirmarSenha by remember { mutableStateOf("") }
+    var aceitarTermos by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(GREEN, BLUE)
-                )
+                brush = Brush.linearGradient(colors = listOf(WHITE, GREEN, BLUE))
             )
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        // TopBar
-        TopAppBar(
-            title = { },
-            navigationIcon = {
-                IconButton(
-                    onClick = onBack,
-                    enabled = !isLoading
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Voltar",
-                        tint = WHITE
-                    )
+        Button(
+            onClick = { navController.navigate("login"){
+                popUpTo("login")
+                { inclusive= true }
+            } },
+            modifier = Modifier.padding(top =16.dp)
+        ) {
+            Text(text = "Voltar para Login")
+        }
+
+        Image(
+            painter = painterResource(id = R.drawable.logo),
+            contentDescription = null,
+            modifier = Modifier
+                .size(200.dp)
+                .padding(bottom = 16.dp)
+        )
+
+        Text(
+            text = buildAnnotatedString {
+                append("Cadas")
+                withStyle(style = SpanStyle(color = BLUE, fontFamily = minhaFonte)) {
+                    append("tro")
                 }
             },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = androidx.compose.ui.graphics.Color.Transparent
-            )
+            fontSize = 32.sp,
+            color = WHITE,
+            modifier = Modifier.padding(bottom = 16.dp)
         )
-        
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+
+        OutlinedTextField(
+            value = nome,
+            onValueChange = { nome = it },
+            label = { Text("Nome completo") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        OutlinedTextField(
+            value = dataNascimento,
+            onValueChange = { dataNascimento = it },
+            label = { Text("Data de nascimento") },
+            placeholder = { Text("DD/MM/AAAA") },
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+        )
+
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("E-mail") },
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+        )
+
+        OutlinedTextField(
+            value = telefone,
+            onValueChange = { telefone = it },
+            label = { Text("Telefone") },
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+        )
+
+        OutlinedTextField(
+            value = senha,
+            onValueChange = { senha = it },
+            label = { Text("Senha") },
+            modifier = Modifier.fillMaxWidth(),
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+        )
+
+        OutlinedTextField(
+            value = confirmarSenha,
+            onValueChange = { confirmarSenha = it },
+            label = { Text("Confirmar senha") },
+            modifier = Modifier.fillMaxWidth(),
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+        )
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(vertical = 12.dp)
         ) {
-            // Título
-            Text(
-                text = buildAnnotatedString {
-                    append("CRIAR CONTA\n")
-                    withStyle(
-                        style = SpanStyle(
-                            color = BLUE,
-                            fontFamily = MinhaFonte
-                        )
-                    ) {
-                        append("CLEANWORLD")
-                    }
-                },
-                color = WHITE,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 32.dp)
+            Checkbox(
+                checked = aceitarTermos,
+                onCheckedChange = { aceitarTermos = it }
             )
-            
-            // Formulário
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = WHITE.copy(alpha = 0.1f)
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Campo Nome
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = { Text("Nome completo", color = WHITE.copy(alpha = 0.8f)) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = WHITE,
-                            unfocusedTextColor = WHITE,
-                            focusedBorderColor = WHITE,
-                            unfocusedBorderColor = WHITE.copy(alpha = 0.5f)
-                        ),
-                        singleLine = true,
-                        enabled = !isLoading
-                    )
-                    
-                    // Campo Email
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it },
-                        label = { Text("Email", color = WHITE.copy(alpha = 0.8f)) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = WHITE,
-                            unfocusedTextColor = WHITE,
-                            focusedBorderColor = if (email.isNotEmpty() && !isEmailValid) 
-                                MaterialTheme.colorScheme.error else WHITE,
-                            unfocusedBorderColor = WHITE.copy(alpha = 0.5f)
-                        ),
-                        singleLine = true,
-                        enabled = !isLoading,
-                        isError = email.isNotEmpty() && !isEmailValid
-                    )
-                    
-                    if (email.isNotEmpty() && !isEmailValid) {
-                        Text(
-                            text = "Email deve conter @ e domínio",
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 12.sp,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 16.dp, bottom = 8.dp)
-                        )
-                    }
-                    
-                    // Campo Senha
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = { Text("Senha", color = WHITE.copy(alpha = 0.8f)) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = WHITE,
-                            unfocusedTextColor = WHITE,
-                            focusedBorderColor = if (password.isNotEmpty() && !isPasswordValid) 
-                                MaterialTheme.colorScheme.error else WHITE,
-                            unfocusedBorderColor = WHITE.copy(alpha = 0.5f)
-                        ),
-                        visualTransformation = PasswordVisualTransformation(),
-                        singleLine = true,
-                        enabled = !isLoading,
-                        isError = password.isNotEmpty() && !isPasswordValid
-                    )
-                    
-                    if (password.isNotEmpty() && !isPasswordValid) {
-                        Text(
-                            text = "Senha deve ter pelo menos 6 caracteres",
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 12.sp,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 16.dp, bottom = 8.dp)
-                        )
-                    }
-                    
-                    // Campo Confirmar Senha
-                    OutlinedTextField(
-                        value = confirmPassword,
-                        onValueChange = { confirmPassword = it },
-                        label = { Text("Confirmar senha", color = WHITE.copy(alpha = 0.8f)) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 24.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = WHITE,
-                            unfocusedTextColor = WHITE,
-                            focusedBorderColor = if (confirmPassword.isNotEmpty() && !doPasswordsMatch) 
-                                MaterialTheme.colorScheme.error else WHITE,
-                            unfocusedBorderColor = WHITE.copy(alpha = 0.5f)
-                        ),
-                        visualTransformation = PasswordVisualTransformation(),
-                        singleLine = true,
-                        enabled = !isLoading,
-                        isError = confirmPassword.isNotEmpty() && !doPasswordsMatch
-                    )
-                    
-                    if (confirmPassword.isNotEmpty() && !doPasswordsMatch) {
-                        Text(
-                            text = "Senhas não conferem",
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 12.sp,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 16.dp, bottom = 16.dp)
-                        )
-                    }
-                    
-                    // Botão Cadastrar
-                    Button(
-                        onClick = { 
-                            authViewModel?.signUp(email.trim(), password)
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = BLUE
-                        ),
-                        enabled = !isLoading && isFormValid
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                color = WHITE,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        } else {
-                            Text(
-                                text = "CRIAR CONTA",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = WHITE
-                            )
-                        }
-                    }
-                    
-                    // Link para login
-                    Row(
-                        modifier = Modifier.padding(top = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Já tem conta? ",
-                            color = WHITE.copy(alpha = 0.8f),
-                            fontSize = 14.sp
-                        )
-                        TextButton(
-                            onClick = onNavigateToLogin,
-                            enabled = !isLoading
-                        ) {
-                            Text(
-                                text = "Fazer Login",
-                                color = WHITE,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+            Text(text = "Aceito os termos e condições", color = WHITE)
+        }
+
+        Button(
+            onClick = {
+                if (nome.isBlank() || email.isBlank() || senha != confirmarSenha || !aceitarTermos) {
+                    Toast.makeText(context, "Verifique os campos", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "Cadastro realizado!", Toast.LENGTH_SHORT).show()
+
+                    // Volta para a tela de login após o cadastro
+                    navController.navigate("login") {
+                        popUpTo("cadastro") { inclusive = true }
                     }
                 }
-            }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = aceitarTermos,
+            colors = ButtonDefaults.buttonColors(containerColor = GREEN)
+        ) {
+            Text("Cadastrar", color = WHITE)
         }
     }
-}
-
-@Preview
-@Composable
-fun CadastroScreenPreview() {
-    CadastroScreen()
 }

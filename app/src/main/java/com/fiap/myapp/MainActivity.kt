@@ -3,22 +3,22 @@ package com.fiap.myapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.navigation.compose.rememberNavController
-import com.fiap.myapp.auth.AuthViewModel
-import com.fiap.myapp.navigation.NavGraph
+import com.fiap.myapp.navigation.AppNavigation
+import com.fiap.myapp.ui.theme.MyAppTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val navController = rememberNavController()
-            val authViewModel: AuthViewModel = viewModel()
-            
-            NavGraph(
-                navController = navController,
-                authViewModel = authViewModel
-            )
+            MyAppTheme {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    val navController = rememberNavController()
+                    AppNavigation(navController = navController)
+                }
+            }
         }
     }
 }
