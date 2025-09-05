@@ -1,5 +1,6 @@
 package com.fiap.myapp.screens
 
+import android.util.Patterns
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -12,7 +13,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
@@ -24,17 +24,25 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavHostController
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fiap.myapp.R
+import com.fiap.myapp.auth.AuthState
+import com.fiap.myapp.auth.AuthViewModel
 import com.fiap.myapp.ui.theme.BLUE
 import com.fiap.myapp.ui.theme.GREEN
 import com.fiap.myapp.ui.theme.WHITE
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CadastroScreen(navController: NavHostController) {
+fun CadastroScreen(
+    authViewModel: AuthViewModel = viewModel(),
+    onNavigateToLogin: () -> Unit = {},
+    onBack: () -> Unit = {}
+) {
     val context = LocalContext.current
     val minhaFonte = FontFamily(Font(R.font.righteous_regular))
+    
+    val authState by authViewModel.authState.collectAsState()
 
     var nome by remember { mutableStateOf("") }
     var dataNascimento by remember { mutableStateOf("") }
@@ -43,6 +51,51 @@ fun CadastroScreen(navController: NavHostController) {
     var senha by remember { mutableStateOf("") }
     var confirmarSenha by remember { mutableStateOf("") }
     var aceitarTermos by remember { mutableStateOf(false) }
+    var erroCadastro by remember { mutableStateOf("") }
+    
+    val isLoading = authState is AuthState.Loading
+    
+    LaunchedEffect(authState) {
+        val currentState = authState
+        when (currentState) {
+            is AuthState.Error -> {
+                erroCadastro = currentState.message
+            }
+            is AuthState.Authenticated -> {
+                Toast.makeText(context, "Cadastro realizado com sucesso!", Toast.LENGTH_SHORT).show()
+                onNavigateToLogin()
+                erroCadastro = ""
+            }
+            is AuthState.Unauthenticated -> {
+                if (erroCadastro.isNotEmpty()) {
+                    erroCadastro = ""
+                }
+            }
+        }
+    }
+    
+    fun validateFields(): String? {
+        return when {
+            nome.isBlank() -> "Nome é obrigatório"
+            email.isBlank() -> "Email é obrigatório"
+            !Patterns.EMAIL_ADDRESS.matcher(email).matches() -> "Email inválido"
+            senha.length < 6 -> "Senha deve ter pelo menos 6 caracteres"
+            senha != confirmarSenha -> "Senhas não coincidem"
+            !aceitarTermos -> "Aceite os termos e condições"
+            else -> null
+        }
+    }
+    
+    fun handleSignUp() {
+        val validationError = validateFields()
+        if (validationError != null) {
+            erroCadastro = validationError
+            return
+        }
+        
+        erroCadastro = ""
+        authViewModel.signUp(email, senha)
+    }
 
     Column(
         modifier = Modifier
@@ -56,11 +109,9 @@ fun CadastroScreen(navController: NavHostController) {
         verticalArrangement = Arrangement.Center
     ) {
         Button(
-            onClick = { navController.navigate("login"){
-                popUpTo("login")
-                { inclusive= true }
-            } },
-            modifier = Modifier.padding(top =16.dp)
+            onClick = onBack,
+            modifier = Modifier.padding(top = 16.dp),
+            enabled = !isLoading
         ) {
             Text(text = "Voltar para Login")
         }
@@ -89,7 +140,8 @@ fun CadastroScreen(navController: NavHostController) {
             value = nome,
             onValueChange = { nome = it },
             label = { Text("Nome completo") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isLoading
         )
 
         OutlinedTextField(
@@ -98,7 +150,8 @@ fun CadastroScreen(navController: NavHostController) {
             label = { Text("Data de nascimento") },
             placeholder = { Text("DD/MM/AAAA") },
             modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            enabled = !isLoading
         )
 
         OutlinedTextField(
@@ -106,7 +159,9 @@ fun CadastroScreen(navController: NavHostController) {
             onValueChange = { email = it },
             label = { Text("E-mail") },
             modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            enabled = !isLoading,
+            isError = erroCadastro.contains("Email", ignoreCase = true)
         )
 
         OutlinedTextField(
@@ -114,7 +169,8 @@ fun CadastroScreen(navController: NavHostController) {
             onValueChange = { telefone = it },
             label = { Text("Telefone") },
             modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            enabled = !isLoading
         )
 
         OutlinedTextField(
@@ -123,7 +179,9 @@ fun CadastroScreen(navController: NavHostController) {
             label = { Text("Senha") },
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            enabled = !isLoading,
+            isError = erroCadastro.contains("Senha", ignoreCase = true)
         )
 
         OutlinedTextField(
@@ -132,7 +190,9 @@ fun CadastroScreen(navController: NavHostController) {
             label = { Text("Confirmar senha") },
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            enabled = !isLoading,
+            isError = erroCadastro.contains("coincidem", ignoreCase = true)
         )
 
         Row(
@@ -141,29 +201,65 @@ fun CadastroScreen(navController: NavHostController) {
         ) {
             Checkbox(
                 checked = aceitarTermos,
-                onCheckedChange = { aceitarTermos = it }
+                onCheckedChange = { aceitarTermos = it },
+                enabled = !isLoading
             )
             Text(text = "Aceito os termos e condições", color = WHITE)
         }
 
-        Button(
-            onClick = {
-                if (nome.isBlank() || email.isBlank() || senha != confirmarSenha || !aceitarTermos) {
-                    Toast.makeText(context, "Verifique os campos", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(context, "Cadastro realizado!", Toast.LENGTH_SHORT).show()
-
-                    // Volta para a tela de login após o cadastro
-                    navController.navigate("login") {
-                        popUpTo("cadastro") { inclusive = true }
+        if (erroCadastro.isNotEmpty()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = erroCadastro,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    
+                    if (authState is AuthState.Error) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { authViewModel.clearError() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Text("Tentar Novamente", color = WHITE)
+                        }
                     }
                 }
-            },
+            }
+        }
+
+        Button(
+            onClick = { handleSignUp() },
             modifier = Modifier.fillMaxWidth(),
-            enabled = aceitarTermos,
+            enabled = aceitarTermos && !isLoading,
             colors = ButtonDefaults.buttonColors(containerColor = GREEN)
         ) {
-            Text("Cadastrar", color = WHITE)
+            if (isLoading) {
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = WHITE,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Cadastrando...", color = WHITE)
+                }
+            } else {
+                Text("Cadastrar", color = WHITE)
+            }
         }
     }
 }
