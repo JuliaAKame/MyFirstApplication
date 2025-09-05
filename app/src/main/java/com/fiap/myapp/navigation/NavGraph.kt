@@ -157,17 +157,7 @@ private fun AppNavHost(
         }
         
         composable(Routes.REGISTER) {
-            CadastroScreen(
-                authViewModel = authViewModel,
-                onNavigateToLogin = {
-                    navController.navigate(Routes.LOGIN) {
-                        popUpTo(Routes.REGISTER) { inclusive = true }
-                    }
-                },
-                onBack = {
-                    navController.popBackStack()
-                }
-            )
+            CadastroScreen(navController = navController)
         }
         
         composable(Routes.RECYCLING) {

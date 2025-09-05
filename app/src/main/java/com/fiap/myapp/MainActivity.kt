@@ -6,7 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.navigation.compose.rememberNavController
-import com.fiap.myapp.navigation.AppNavigation
+import com.fiap.myapp.navigation.NavGraph
 import com.fiap.myapp.ui.theme.MyAppTheme
 
 class MainActivity : ComponentActivity() {
@@ -16,7 +16,7 @@ class MainActivity : ComponentActivity() {
             MyAppTheme {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     val navController = rememberNavController()
-                    AppNavigation(navController = navController)
+                    NavGraph(navController = navController)
                 }
             }
         }
