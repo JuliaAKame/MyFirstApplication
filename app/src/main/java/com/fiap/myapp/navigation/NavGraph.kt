@@ -10,6 +10,7 @@ import com.fiap.myapp.auth.AuthViewModel
 import com.fiap.myapp.screens.CadastroScreen
 import com.fiap.myapp.screens.Login
 import com.fiap.myapp.screens.PartnersScreen
+import com.fiap.myapp.screens.RecyclingScreen
 
 /**
  * Main navigation configuration for the application.
@@ -94,7 +95,7 @@ private suspend fun handleAuthStateChange(
  * Navigates to authenticated section and clears auth screens from backstack.
  */
 private fun navigateToAuthenticated(navController: NavHostController) {
-    navController.navigate(Routes.PARTNERS) {
+    navController.navigate(Routes.RECYCLING) {
         popUpTo(Routes.LOGIN) { inclusive = true }
         popUpTo(Routes.REGISTER) { inclusive = true }
     }
@@ -108,6 +109,7 @@ private fun navigateToUnauthenticated(navController: NavHostController) {
     
     if (currentRoute !in Routes.publicRoutes) {
         navController.navigate(Routes.LOGIN) {
+            popUpTo(Routes.RECYCLING) { inclusive = true }
             popUpTo(Routes.PARTNERS) { inclusive = true }
         }
     }
@@ -123,8 +125,10 @@ private fun handleAuthError(
 ) {
     onError(errorState.message)
     
-    if (navController.currentDestination?.route == Routes.PARTNERS) {
+    val currentRoute = navController.currentDestination?.route
+    if (currentRoute in Routes.protectedRoutes) {
         navController.navigate(Routes.LOGIN) {
+            popUpTo(Routes.RECYCLING) { inclusive = true }
             popUpTo(Routes.PARTNERS) { inclusive = true }
         }
     }
@@ -166,10 +170,27 @@ private fun AppNavHost(
             )
         }
         
+        composable(Routes.RECYCLING) {
+            ProtectedRoute(authState = authState) {
+                RecyclingScreen(
+                    onNavigateToHistory = {
+                        navController.navigate(Routes.RECYCLING_HISTORY)
+                    },
+                    onNavigateToPartners = {
+                        navController.navigate(Routes.PARTNERS)
+                    }
+                )
+            }
+        }
+        
         composable(Routes.PARTNERS) {
             ProtectedRoute(authState = authState) {
                 PartnersScreen(
-                    onBack = { authViewModel.signOut() },
+                    onBack = { 
+                        navController.navigate(Routes.RECYCLING) {
+                            popUpTo(Routes.PARTNERS) { inclusive = true }
+                        }
+                    },
                     onLogout = { authViewModel.signOut() }
                 )
             }
@@ -182,7 +203,7 @@ private fun AppNavHost(
  */
 private fun determineStartDestination(authState: AuthState): String {
     return when (authState) {
-        is AuthState.Authenticated -> Routes.PARTNERS
+        is AuthState.Authenticated -> Routes.RECYCLING
         else -> Routes.LOGIN
     }
 }

@@ -11,6 +11,8 @@ object Routes {
     
     // Main application routes
     const val PARTNERS = "partners"
+    const val RECYCLING = "recycling"
+    const val RECYCLING_HISTORY = "recycling_history"
     
     /**
      * Determines the initial route based on authentication state.
@@ -18,13 +20,13 @@ object Routes {
      * @return The appropriate route string
      */
     fun getStartRoute(isAuthenticated: Boolean): String {
-        return if (isAuthenticated) PARTNERS else LOGIN
+        return if (isAuthenticated) RECYCLING else LOGIN
     }
     
     /**
      * All available routes as a list for validation purposes.
      */
-    val allRoutes = listOf(LOGIN, REGISTER, PARTNERS)
+    val allRoutes = listOf(LOGIN, REGISTER, PARTNERS, RECYCLING, RECYCLING_HISTORY)
     
     /**
      * Routes that don't require authentication.
@@ -34,5 +36,5 @@ object Routes {
     /**
      * Routes that require authentication.
      */
-    val protectedRoutes = listOf(PARTNERS)
+    val protectedRoutes = listOf(PARTNERS, RECYCLING, RECYCLING_HISTORY)
 }
