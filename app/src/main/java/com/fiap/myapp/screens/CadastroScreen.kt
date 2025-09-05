@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -71,6 +73,9 @@ fun CadastroScreen(
                     erroCadastro = ""
                 }
             }
+            is AuthState.Loading -> {
+                // Keep current error state during loading
+            }
         }
     }
     
@@ -108,12 +113,30 @@ fun CadastroScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Button(
-            onClick = onBack,
-            modifier = Modifier.padding(top = 16.dp),
-            enabled = !isLoading
+        // Botão de voltar como ícone no topo à esquerda
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.Start
         ) {
-            Text(text = "Voltar para Login")
+            IconButton(
+                onClick = onBack,
+                enabled = !isLoading,
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(
+                        color = WHITE.copy(alpha = 0.2f),
+                        shape = androidx.compose.foundation.shape.CircleShape
+                    )
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Voltar para Login",
+                    tint = BLUE,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
 
         Image(
