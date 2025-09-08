@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -145,7 +146,7 @@ fun PartnersScreen(onBack: () -> Unit = {}, onAction: (String) -> Unit = {}, onL
 	) {
 		item {
 			// Header com botão de logout
-			Row(
+				Row(
 				modifier = Modifier
 					.fillMaxWidth()
 					.statusBarsPadding()
@@ -153,8 +154,18 @@ fun PartnersScreen(onBack: () -> Unit = {}, onAction: (String) -> Unit = {}, onL
 				horizontalArrangement = Arrangement.SpaceBetween,
 				verticalAlignment = Alignment.CenterVertically
 			) {
-				Spacer(modifier = Modifier.size(40.dp)) // Espaço para equilibrar o layout
-				
+				IconButton(
+					onClick = { onBack() },
+					modifier = Modifier.size(40.dp)
+				) {
+					Icon(
+						imageVector = androidx.compose.material.icons.Icons.Default.ArrowBack,
+						contentDescription = "Voltar ao início",
+						tint = WHITE,
+						modifier = Modifier.size(24.dp)
+					)
+				}
+
 				Text(
 					text = buildAnnotatedString {
 						append("CLEAN")

@@ -27,9 +27,9 @@ class FirebaseAuthRepository : AuthRepository {
     private val firebaseAuth = FirebaseAuth.getInstance()
     
     companion object {
-        private const val UNKNOWN_LOGIN_ERROR = "Unknown error occurred during sign in"
-        private const val UNKNOWN_REGISTER_ERROR = "Unknown error occurred during registration"
-        private const val LOGOUT_ERROR = "Failed to sign out"
+    private const val UNKNOWN_LOGIN_ERROR = "Erro desconhecido ao fazer login"
+    private const val UNKNOWN_REGISTER_ERROR = "Erro desconhecido ao registrar"
+    private const val LOGOUT_ERROR = "Falha ao sair da conta"
     }
     
     /**
@@ -120,15 +120,15 @@ class FirebaseAuthRepository : AuthRepository {
      */
     private fun getFirebaseErrorMessage(exception: FirebaseAuthException): String {
         return when (exception.errorCode) {
-            "ERROR_INVALID_EMAIL" -> "Invalid email address format"
-            "ERROR_WRONG_PASSWORD" -> "Incorrect password"
-            "ERROR_USER_NOT_FOUND" -> "No account found with this email"
-            "ERROR_USER_DISABLED" -> "This account has been disabled"
-            "ERROR_TOO_MANY_REQUESTS" -> "Too many failed attempts. Please try again later"
-            "ERROR_EMAIL_ALREADY_IN_USE" -> "Email address is already registered"
-            "ERROR_WEAK_PASSWORD" -> "Password is too weak. Use at least 6 characters"
-            "ERROR_NETWORK_REQUEST_FAILED" -> "Network error. Please check your connection"
-            else -> exception.message ?: "Authentication failed"
+            "ERROR_INVALID_EMAIL" -> "Formato de e-mail inválido"
+            "ERROR_WRONG_PASSWORD" -> "Senha incorreta"
+            "ERROR_USER_NOT_FOUND" -> "Nenhuma conta encontrada com esse e-mail"
+            "ERROR_USER_DISABLED" -> "Esta conta foi desativada"
+            "ERROR_TOO_MANY_REQUESTS" -> "Muitas tentativas falhas. Tente novamente mais tarde"
+            "ERROR_EMAIL_ALREADY_IN_USE" -> "E-mail já cadastrado"
+            "ERROR_WEAK_PASSWORD" -> "Senha fraca. Use pelo menos 6 caracteres"
+            "ERROR_NETWORK_REQUEST_FAILED" -> "Erro de conexão. Verifique sua internet"
+            else -> exception.message ?: "Falha na autenticação"
         }
     }
 }

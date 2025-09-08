@@ -11,6 +11,7 @@ import com.fiap.myapp.screens.CadastroScreen
 import com.fiap.myapp.screens.Login
 import com.fiap.myapp.screens.PartnersScreen
 import com.fiap.myapp.screens.RecyclingScreen
+import com.fiap.myapp.screens.HistoryScreen
 
 /**
  * Main navigation configuration for the application.
@@ -192,6 +193,18 @@ private fun AppNavHost(
                         }
                     },
                     onLogout = { authViewModel.signOut() }
+                )
+            }
+        }
+
+        composable(Routes.RECYCLING_HISTORY) {
+            ProtectedRoute(authState = authState) {
+                HistoryScreen(
+                    onBack = {
+                        navController.navigate(Routes.RECYCLING) {
+                            popUpTo(Routes.RECYCLING_HISTORY) { inclusive = true }
+                        }
+                    }
                 )
             }
         }

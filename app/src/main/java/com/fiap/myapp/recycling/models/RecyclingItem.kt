@@ -40,7 +40,7 @@ data class RecyclingItem(
             return false to "Foto é obrigatória"
         }
         
-        return true to "Item válido para pontuação"
+    return true to "Item válido para pontuação"
     }
     
     /**
