@@ -2,6 +2,8 @@ package com.fiap.myapp.screens
 
 import android.Manifest
 import android.net.Uri
+import android.content.ContentValues
+import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -73,15 +75,18 @@ fun RecyclingScreen(
         permission = Manifest.permission.CAMERA
     )
     
-    // Photo capture launcher
-    val photoLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap ->
-        bitmap?.let {
-            // In a real implementation, save bitmap to file and get URI
-            // For now, use a mock URI
-            val mockUri = "content://mock_photo_${System.currentTimeMillis()}"
-            viewModel.onPhotoCaptured(mockUri)
+    // Photo capture launcher: use MediaStore to obtain a real content Uri and call camera
+    var pendingPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    val takePictureLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        if (success) {
+            pendingPhotoUri?.let { uri ->
+                viewModel.onPhotoCaptured(uri.toString())
+            }
+        } else {
+            // If user cancelled or error, clear pending uri
+            pendingPhotoUri = null
         }
     }
     
@@ -114,12 +119,26 @@ fun RecyclingScreen(
                 photoUri = photoUri,
                 onCapturePhoto = {
                     if (cameraPermissionState.status.isGranted) {
-                        photoLauncher.launch(null)
+                        // Prepare a content Uri in MediaStore and launch camera
+                        val resolver = context.contentResolver
+                        val contentValues = ContentValues().apply {
+                            put(MediaStore.Images.Media.DISPLAY_NAME, "recycling_${System.currentTimeMillis()}.jpg")
+                            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+                        }
+                        val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+                        if (uri != null) {
+                            pendingPhotoUri = uri
+                            takePictureLauncher.launch(uri)
+                        } else {
+                            // Fallback: still attempt without a pre-created uri (rare)
+                            cameraPermissionState.launchPermissionRequest()
+                        }
                     } else {
                         cameraPermissionState.launchPermissionRequest()
                     }
                 },
-                permissionState = cameraPermissionState
+                permissionState = cameraPermissionState,
+                onRemovePhoto = { viewModel.clearPhoto() }
             )
         }
         
@@ -162,6 +181,7 @@ fun RecyclingScreen(
         item {
             SubmitSection(
                 uiState = uiState,
+                isEnabled = viewModel.canSubmit(),
                 onSubmit = {
                     viewModel.submitRecyclingItem("current_user_id") // In real app, get from auth
                 },
@@ -232,7 +252,7 @@ private fun HeaderSection(
                 ) {
                     Text("Histórico", color = WHITE, fontWeight = FontWeight.Bold)
                 }
-                
+
                 Button(
                     onClick = onNavigateToPartners,
                     modifier = Modifier.weight(1f),
@@ -282,7 +302,8 @@ private fun PointsCard(
 private fun PhotoCaptureSection(
     photoUri: String?,
     onCapturePhoto: () -> Unit,
-    permissionState: com.google.accompanist.permissions.PermissionState
+    permissionState: com.google.accompanist.permissions.PermissionState,
+    onRemovePhoto: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -303,38 +324,56 @@ private fun PhotoCaptureSection(
             Spacer(modifier = Modifier.height(16.dp))
             
             if (photoUri != null) {
-                // Show captured photo
+                // Show captured photo preview. photoUri may be an absolute file path.
                 Card(
                     modifier = Modifier
-                        .size(200.dp)
+                        .size(220.dp)
                         .clip(RoundedCornerShape(12.dp))
                 ) {
-                    // In real implementation, use AsyncImage with actual URI
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(GREEN.copy(alpha = 0.1f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = "Foto capturada",
-                            tint = GREEN,
-                            modifier = Modifier.size(48.dp)
+                    if (photoUri.startsWith("/") || photoUri.startsWith("file:")) {
+                        AsyncImage(
+                            model = if (photoUri.startsWith("/")) "file://$photoUri" else photoUri,
+                            contentDescription = "Foto do material",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
                         )
+                    } else {
+                        // Fallback placeholder
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(GREEN.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "Foto capturada",
+                                tint = GREEN,
+                                modifier = Modifier.size(48.dp)
+                            )
+                        }
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(12.dp))
-                
-                Button(
-                    onClick = onCapturePhoto,
-                    colors = ButtonDefaults.buttonColors(containerColor = BLUE),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Tirar Nova Foto", color = WHITE)
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = onCapturePhoto,
+                        colors = ButtonDefaults.buttonColors(containerColor = BLUE),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Tirar Nova Foto", color = WHITE)
+                    }
+
+                    OutlinedButton(
+                        onClick = onRemovePhoto,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red)
+                    ) {
+                        Text("Remover Foto")
+                    }
                 }
             } else {
                 // Show camera capture button
@@ -363,10 +402,10 @@ private fun PhotoCaptureSection(
                     }
                 }
                 
-                if (permissionState.status.shouldShowRationale) {
+        if (permissionState.status.shouldShowRationale) {
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Permissão de câmera necessária para capturar foto",
+                        Text(
+            text = "Permissão de câmera necessária para capturar foto",
                         fontSize = 12.sp,
                         color = Color.Gray,
                         textAlign = TextAlign.Center
@@ -404,7 +443,7 @@ private fun DescriptionSection(
                 value = description,
                 onValueChange = onDescriptionChange,
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Ex: Garrafa PET transparente de refrigerante") },
+                placeholder = { Text("Ex: Garrafa PET transparente") },
                 minLines = 3,
                 maxLines = 5,
                 shape = RoundedCornerShape(12.dp),
@@ -595,6 +634,7 @@ private fun PointsEstimationSection(
 @Composable
 private fun SubmitSection(
     uiState: RecyclingState,
+    isEnabled: Boolean,
     onSubmit: () -> Unit,
     onResetState: () -> Unit
 ) {
@@ -653,7 +693,7 @@ private fun SubmitSection(
                             fontWeight = FontWeight.Bold,
                             color = GREEN
                         )
-                        
+
                         Text(
                             text = "Você ganhou ${uiState.pointsEarned} pontos!",
                             fontSize = 16.sp,
@@ -724,6 +764,7 @@ private fun SubmitSection(
                 // Default submit button
                 Button(
                     onClick = onSubmit,
+                    enabled = isEnabled,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -731,7 +772,7 @@ private fun SubmitSection(
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Text(
-                        text = "Registrar Material",
+                        text = if (isEnabled) "Registrar Material" else "Preencha o formulário",
                         color = WHITE,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold

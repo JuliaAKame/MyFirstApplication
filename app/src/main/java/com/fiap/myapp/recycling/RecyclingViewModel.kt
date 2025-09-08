@@ -46,6 +46,15 @@ class RecyclingViewModel(
         _photoUri.value = uri
         _uiState.value = RecyclingState.PhotoCaptured(uri)
     }
+
+    /**
+     * Clears the currently selected photo from the form.
+     */
+    fun clearPhoto() {
+        _photoUri.value = null
+        // Return to idle so UI updates accordingly
+        _uiState.value = RecyclingState.Idle
+    }
     
     /**
      * Updates the description text.
@@ -173,9 +182,9 @@ class RecyclingViewModel(
                                         resetForm()
                                     } else {
                                         _uiState.value = RecyclingState.ValidationFailed(
-                                            message = validatedItem.validationMessage ?: "Validação falhou",
-                                            canRetry = true
-                                        )
+                                        message = validatedItem.validationMessage ?: "Validação falhou",
+                                        canRetry = true
+                                    )
                                     }
                                 }
                                 is Result.Error -> {
@@ -201,9 +210,9 @@ class RecyclingViewModel(
                 
             } catch (e: Exception) {
                 _uiState.value = RecyclingState.Error(
-                    message = "Erro inesperado: ${e.message}",
-                    exception = e
-                )
+                        message = "Erro inesperado: ${e.message}",
+                        exception = e
+                    )
             }
         }
     }
@@ -256,6 +265,11 @@ class RecyclingViewModel(
                 _selectedCategory.value != null &&
                 _selectedWeight.value != null
     }
+
+    /**
+     * Public wrapper to check if the form is ready to submit.
+     */
+    fun canSubmit(): Boolean = isFormValid()
     
     /**
      * Gets validation message for current form state.

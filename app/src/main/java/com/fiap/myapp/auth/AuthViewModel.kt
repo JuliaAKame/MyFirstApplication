@@ -24,9 +24,9 @@ class AuthViewModel(
     }
     
     companion object {
-        private const val EMPTY_CREDENTIALS_ERROR = "Email and password are required"
-        private const val SIGN_IN_ERROR_PREFIX = "Sign in failed: "
-        private const val SIGN_UP_ERROR_PREFIX = "Registration failed: "
+    private const val EMPTY_CREDENTIALS_ERROR = "Email e senha são obrigatórios"
+    private const val SIGN_IN_ERROR_PREFIX = "Falha ao entrar: "
+    private const val SIGN_UP_ERROR_PREFIX = "Falha ao registrar: "
     }
     
     init {
@@ -134,7 +134,7 @@ class AuthViewModel(
                     _authState.value = AuthState.Authenticated(user)
                 }
                 .onFailure { exception ->
-                    val errorMessage = exception.message ?: "Unknown error occurred"
+                    val errorMessage = exception.message ?: "Erro desconhecido"
                     _authState.value = AuthState.Error(errorMessage)
                 }
         }

@@ -52,7 +52,7 @@ private fun LoadingContent() {
         BrandTitle()
         
         StatusMessage(
-            message = "Checking authentication...",
+            message = "Verificando autenticação...",
             modifier = Modifier.padding(top = 8.dp)
         )
     }
@@ -93,7 +93,7 @@ fun ErrorDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Authentication Error",
+                text = "Erro de autenticação",
                 fontWeight = FontWeight.Bold
             )
         },
@@ -113,7 +113,7 @@ fun ErrorDialog(
                         onDismiss()
                     }
                 ) {
-                    Text("Try Again")
+                    Text("Tentar novamente")
                 }
             }
         }
@@ -130,7 +130,7 @@ private fun LoadingScreenPreview() {
 @Composable
 private fun ErrorDialogPreview() {
     ErrorDialog(
-        message = "Failed to authenticate user",
+    message = "Falha ao autenticar usuário",
         onDismiss = {},
         onRetry = {}
     )
