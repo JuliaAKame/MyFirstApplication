@@ -10,6 +10,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,6 +40,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.window.Dialog
+import kotlinx.coroutines.launch
 import coil.compose.AsyncImage
 import com.fiap.myapp.R
 import com.fiap.myapp.recycling.RecyclingState
@@ -69,6 +74,11 @@ fun RecyclingScreen(
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val selectedWeight by viewModel.selectedWeight.collectAsState()
     val totalPoints by viewModel.totalPoints.collectAsState()
+    val estimatedPoints = viewModel.getEstimatedPoints()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    var showPreviewDialog by rememberSaveable { mutableStateOf(false) }
     
     // Camera permissions
     val cameraPermissionState = rememberPermissionState(
@@ -95,15 +105,20 @@ fun RecyclingScreen(
         viewModel.loadUserPoints("current_user_id") // In real app, get from auth
     }
     
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.linearGradient(colors = listOf(WHITE, GREEN, BLUE))
-            ),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        containerColor = Brush.linearGradient(colors = listOf(WHITE, GREEN, BLUE)).let { androidx.compose.ui.graphics.Color.Unspecified }
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(
+                    brush = Brush.linearGradient(colors = listOf(WHITE, GREEN, BLUE))
+                ),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
         // Header
         item {
             HeaderSection(
@@ -138,7 +153,8 @@ fun RecyclingScreen(
                     }
                 },
                 permissionState = cameraPermissionState,
-                onRemovePhoto = { viewModel.clearPhoto() }
+                onRemovePhoto = { viewModel.clearPhoto() },
+                onPreviewClick = { showPreviewDialog = true }
             )
         }
         
@@ -185,8 +201,43 @@ fun RecyclingScreen(
                 onSubmit = {
                     viewModel.submitRecyclingItem("current_user_id") // In real app, get from auth
                 },
+                estimatedPoints = estimatedPoints,
                 onResetState = viewModel::resetState
             )
+        }
+        }
+    }
+
+    // Show snackbar for error/success messages
+    LaunchedEffect(uiState) {
+        when (uiState) {
+            is RecyclingState.Error -> {
+                val msg = (uiState as RecyclingState.Error).message
+                coroutineScope.launch { snackbarHostState.showSnackbar(msg) }
+            }
+            is RecyclingState.Success -> {
+                coroutineScope.launch { snackbarHostState.showSnackbar("Registro enviado: +${(uiState as RecyclingState.Success).pointsEarned} pts") }
+            }
+            else -> {}
+        }
+    }
+
+    // Full screen preview dialog
+    if (showPreviewDialog && !photoUri.isNullOrBlank()) {
+        Dialog(onDismissRequest = { showPreviewDialog = false }) {
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.9f)), contentAlignment = Alignment.Center) {
+                AsyncImage(
+                    model = photoUri,
+                    contentDescription = "Pré-visualização da foto",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .clickable { showPreviewDialog = false },
+                    contentScale = ContentScale.Fit
+                )
+            }
         }
     }
 }
@@ -303,7 +354,8 @@ private fun PhotoCaptureSection(
     photoUri: String?,
     onCapturePhoto: () -> Unit,
     permissionState: com.google.accompanist.permissions.PermissionState,
-    onRemovePhoto: () -> Unit
+    onRemovePhoto: () -> Unit,
+    onPreviewClick: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -334,7 +386,9 @@ private fun PhotoCaptureSection(
                         AsyncImage(
                             model = if (photoUri.startsWith("/")) "file://$photoUri" else photoUri,
                             contentDescription = "Foto do material",
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable { onPreviewClick() },
                             contentScale = ContentScale.Crop
                         )
                     } else {
@@ -357,7 +411,11 @@ private fun PhotoCaptureSection(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                    ) {
                     Button(
                         onClick = onCapturePhoto,
                         colors = ButtonDefaults.buttonColors(containerColor = BLUE),
@@ -368,6 +426,7 @@ private fun PhotoCaptureSection(
                         Text("Tirar Nova Foto", color = WHITE)
                     }
 
+                    Spacer(modifier = Modifier.width(12.dp))
                     OutlinedButton(
                         onClick = onRemovePhoto,
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red)
@@ -377,28 +436,30 @@ private fun PhotoCaptureSection(
                 }
             } else {
                 // Show camera capture button
-                Button(
-                    onClick = onCapturePhoto,
-                    modifier = Modifier
-                        .size(120.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = GREEN),
-                    shape = CircleShape
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Button(
+                        onClick = onCapturePhoto,
+                        modifier = Modifier
+                            .size(120.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = GREEN),
+                        shape = CircleShape
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Tirar foto",
-                            tint = WHITE,
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Text(
-                            text = "Tirar Foto",
-                            color = WHITE,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Tirar foto",
+                                tint = WHITE,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Text(
+                                text = "Tirar Foto",
+                                color = WHITE,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
                 
@@ -603,7 +664,9 @@ private fun PointsEstimationSection(
         border = BorderStroke(2.dp, GREEN)
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -619,7 +682,9 @@ private fun PointsEstimationSection(
                 text = estimatedPoints.toString(),
                 fontSize = 36.sp,
                 fontWeight = FontWeight.Bold,
-                color = GREEN
+                color = GREEN,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
             
             Text(
@@ -635,6 +700,7 @@ private fun PointsEstimationSection(
 private fun SubmitSection(
     uiState: RecyclingState,
     isEnabled: Boolean,
+    estimatedPoints: Int = 0,
     onSubmit: () -> Unit,
     onResetState: () -> Unit
 ) {
@@ -761,21 +827,34 @@ private fun SubmitSection(
             }
             
             else -> {
-                // Default submit button
+                // Default submit button with estimated points
                 Button(
                     onClick = onSubmit,
                     enabled = isEnabled,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = BLUE),
+                    colors = ButtonDefaults.buttonColors(containerColor = if (isEnabled) BLUE else Color.Gray),
                     shape = RoundedCornerShape(16.dp)
                 ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = if (isEnabled) "Registrar Material" else "Preencha o formulário",
+                            color = WHITE,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (isEnabled && estimatedPoints > 0) {
+                            Text(text = "+${estimatedPoints} pts", color = WHITE, fontSize = 12.sp)
+                        }
+                    }
+                }
+                if (!isEnabled) {
                     Text(
-                        text = if (isEnabled) "Registrar Material" else "Preencha o formulário",
-                        color = WHITE,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
+                        text = "Complete os campos obrigatórios para habilitar o registro",
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(top = 8.dp)
                     )
                 }
             }
